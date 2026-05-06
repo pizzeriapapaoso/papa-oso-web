@@ -77,7 +77,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);displ
 .eg2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .exc{background:var(--bg);border:1px solid var(--bor);border-radius:var(--r);padding:16px;text-align:center}
 </style>
-</head>
+</head><link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C0392B">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script></head>
 <body>
 <div class="load" id="load"><div class="sp"></div><div style="font-size:14px;opacity:.8" id="load-msg">Conectando con Firebase...</div></div>
 <div class="app" id="app" style="display:none">
