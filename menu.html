@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Menú – Pizzería & Lomitería</title>
+  <style>
+    :root {
+      --red: #c0392b;
+      --red-dark: #962d22;
+      --orange: #e67e22;
+      --bg: #1a1a1a;
+      --card: #242424;
+      --card2: #2c2c2c;
+      --text: #f0f0f0;
+      --text-muted: #aaa;
+      --accent: #f39c12;
+      --green: #27ae60;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 32px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 60%, var(--orange) 100%);
+      padding: 32px 20px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '🍕';
+      font-size: 90px;
+      position: absolute;
+      top: -10px; right: -10px;
+      opacity: 0.12;
+      transform: rotate(20deg);
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .header p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    /* ── NAV TABS ── */
+    .nav-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .nav {
+      display: flex;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 10px 12px;
+      scrollbar-width: none;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-btn {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      background: var(--card);
+      border: none;
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    /* ── SECTION ── */
+    .section {
+      display: none;
+      padding: 16px 14px 0;
+      animation: fadeIn 0.25s ease;
+    }
+    .section.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    /* ── ITEM CARDS ── */
+    .item {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .item-info { flex: 1; }
+    .item-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .item-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .item-price {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--accent);
+      white-space: nowrap;
+      padding-top: 2px;
+      letter-spacing: -0.3px;
+    }
+
+    /* ── DRINKS ── */
+    .drinks-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .drink-item {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .drink-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .drink-price {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      margin-top: 28px;
+      padding: 0 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    footer span { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍕 Pizzería &amp; Lomitería</h1>
+  <p>Menú digital · Precios en guaraníes</p>
+</div>
+
+<div class="nav-wrap">
+  <nav class="nav">
+    <button class="nav-btn active" onclick="show('pizzas')">🍕 Pizzas</button>
+    <button class="nav-btn" onclick="show('borde')">🧀 Borde Relleno</button>
+    <button class="nav-btn" onclick="show('lomipizza')">🔥 Lomipizza</button>
+    <button class="nav-btn" onclick="show('lomitos')">🥖 Lomitos</button>
+    <button class="nav-btn" onclick="show('hamburguesas')">🍔 Hamburgesas</button>
+    <button class="nav-btn" onclick="show('papas')">🍟 Papas</button>
+    <button class="nav-btn" onclick="show('bebidas')">🥤 Bebidas</button>
+  </nav>
+</div>
+
+<!-- ═══ PIZZAS ═══ -->
+<section id="pizzas" class="section active">
+  <p class="section-title">🍕 Pizzas</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Muzarella</div><div class="item-desc">Salsa casera, queso muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 25.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Doble Muzarella</div><div class="item-desc">Salsa casera, doble queso muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Pepperoni</div><div class="item-desc">Salsa casera, muzarella, pepperoni, orégano, aceitunas</div></div><div class="item-price">₲ 40.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Jamonada</div><div class="item-desc">Salsa casera, muzarella, jamón, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Catupiry</div><div class="item-desc">Salsa casera, muzarella, queso catupiry, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Catupiry con Pollo</div><div class="item-desc">Salsa casera, muzarella, catupiry, pollo, orégano, aceitunas</div></div><div class="item-price">₲ 40.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Catupiry con Carne</div><div class="item-desc">Salsa casera, muzarella, catupiry, carne, orégano, aceitunas</div></div><div class="item-price">₲ 40.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Catupiry con Pepperoni</div><div class="item-desc">Salsa casera, muzarella, catupiry, pepperoni, orégano, aceitunas</div></div><div class="item-price">₲ 45.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Catupiry con Jamonada</div><div class="item-desc">Salsa casera, muzarella, catupiry, jamón, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Palmito</div><div class="item-desc">Salsa casera, muzarella, palmito, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Choclo</div><div class="item-desc">Salsa casera, muzarella, choclo, orégano</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Muzarella con Locote</div><div class="item-desc">Salsa casera, muzarella, locote, orégano</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Muzarella con Cebolla</div><div class="item-desc">Salsa casera, muzarella, cebolla, orégano</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Calabresa</div><div class="item-desc">Salsa casera, muzarella, calabresas, orégano, aceitunas</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Primavera</div><div class="item-desc">Salsa casera, jamón, choclo, cebolla, huevo duro, tomate, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Mexicana</div><div class="item-desc">Salsa casera, jamón, cebolla, locote, picante, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Champiñones</div><div class="item-desc">Salsa casera, champiñones, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 40.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Margarita</div><div class="item-desc">Salsa casera, muzarella, tomate, orégano, aceitunas</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Napolitana con Ajo</div><div class="item-desc">Salsa casera, ajo, muzarella, tomate, orégano, aceitunas</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Vegetariana</div><div class="item-desc">Salsa casera, choclo, cebolla, locote, tomate, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Muzarella con Pollo</div><div class="item-desc">Salsa casera, muzarella, pollo, orégano, aceitunas</div></div><div class="item-price">₲ 35.000</div></div>
+</section>
+
+<!-- ═══ BORDE RELLENO ═══ -->
+<section id="borde" class="section">
+  <p class="section-title">🧀 Pizzas con Borde Relleno</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Muzarella</div><div class="item-desc">Salsa casera, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 45.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Doble Muzarella</div><div class="item-desc">Salsa casera, doble muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Pepperoni</div><div class="item-desc">Salsa casera, muzarella, pepperoni, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Jamonada</div><div class="item-desc">Salsa casera, muzarella, jamón, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Catupiry</div><div class="item-desc">Salsa casera, muzarella, catupiry, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Catupiry con Pollo</div><div class="item-desc">Salsa casera, muzarella, catupiry, pollo, orégano, aceitunas</div></div><div class="item-price">₲ 55.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Catupiry con Carne</div><div class="item-desc">Salsa casera, muzarella, catupiry, carne, orégano, aceitunas</div></div><div class="item-price">₲ 55.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Catupiry con Pepperoni</div><div class="item-desc">Salsa casera, muzarella, catupiry, pepperoni, orégano, aceitunas</div></div><div class="item-price">₲ 60.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Catupiry con Jamonada</div><div class="item-desc">Salsa casera, muzarella, catupiry, jamón, orégano, aceitunas</div></div><div class="item-price">₲ 55.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Palmito</div><div class="item-desc">Salsa casera, muzarella, palmito, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Choclo</div><div class="item-desc">Salsa casera, muzarella, choclo, orégano</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Muzarella con Locote</div><div class="item-desc">Salsa casera, muzarella, locote, orégano</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Muzarella con Cebolla</div><div class="item-desc">Salsa casera, muzarella, cebolla, orégano</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Calabresa</div><div class="item-desc">Salsa casera, muzarella, calabresas, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Primavera</div><div class="item-desc">Salsa casera, jamón, choclo, cebolla, huevo duro, tomate, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Mexicana</div><div class="item-desc">Salsa casera, jamón, cebolla, locote, picante, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Champiñones</div><div class="item-desc">Salsa casera, champiñones, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 55.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Margarita</div><div class="item-desc">Salsa casera, muzarella, tomate, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Napolitana con Ajo</div><div class="item-desc">Salsa casera, ajo, muzarella, tomate, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Vegetariana</div><div class="item-desc">Salsa casera, choclo, cebolla, locote, tomate, muzarella, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Borde Relleno Muzarella con Pollo</div><div class="item-desc">Salsa casera, muzarella, pollo, orégano, aceitunas</div></div><div class="item-price">₲ 50.000</div></div>
+</section>
+
+<!-- ═══ LOMIPIZZA ═══ -->
+<section id="lomipizza" class="section">
+  <p class="section-title">🔥 Lomipizza</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Lomipizza Personal</div><div class="item-desc">Lechuga, tomate, 2 carnes de lomito, queso, jamón, huevo, pizza de muzarella</div></div><div class="item-price">₲ 40.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomipizza Normal</div><div class="item-desc">Lechuga, tomate, 3 carnes de lomito, queso, jamón, huevo, pizza de muzarella</div></div><div class="item-price">₲ 65.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomipizza Familiar</div><div class="item-desc">Lechuga, tomate, 4 carnes de lomito, queso, jamón, huevo, pizza de muzarella</div></div><div class="item-price">₲ 85.000</div></div>
+</section>
+
+<!-- ═══ LOMITOS ═══ -->
+<section id="lomitos" class="section">
+  <p class="section-title">🥖 Sándwiches de Lomito</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Simple</div><div class="item-desc">Pan de la casa, carne lomito, queso, jamón</div></div><div class="item-price">₲ 15.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Completo</div><div class="item-desc">Pan de la casa, lechuga, tomate, carne lomito, queso, jamón, huevo</div></div><div class="item-price">₲ 22.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Doble Carne</div><div class="item-desc">Pan de la casa, lechuga, tomate, doble carne lomito, queso, jamón, huevo</div></div><div class="item-price">₲ 27.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Doble Especial</div><div class="item-desc">Pan de la casa, lechuga, tomate, doble carne lomito, queso, jamón, huevo</div></div><div class="item-price">₲ 30.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Especial</div><div class="item-desc">Pan de la casa, lechuga, tomate, carne lomito, cheddar, panceta, jamón, huevo</div></div><div class="item-price">₲ 25.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Sándwich de Pollo</div><div class="item-desc">Pan de la casa, lechuga, tomate, pollo, queso, jamón, huevo</div></div><div class="item-price">₲ 22.000</div></div>
+
+  <p class="section-title" style="margin-top:20px;">🫓 Lomito Árabe</p>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Árabe Carne</div><div class="item-desc">Pan árabe, carne lomito, repollo, queso, mayo de la casa</div></div><div class="item-price">₲ 25.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Árabe Pollo</div><div class="item-desc">Pan árabe, pollo, repollo, queso, mayo de la casa</div></div><div class="item-price">₲ 22.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Árabe Mixto</div><div class="item-desc">Pan árabe, pollo, lomito, repollo, queso, mayo de la casa</div></div><div class="item-price">₲ 22.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Árabe Especial</div><div class="item-desc">Pan árabe, pollo, lomito, repollo, queso, mayo de la casa, jamón, huevo</div></div><div class="item-price">₲ 25.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Lomito Árabe Moustro</div><div class="item-desc">Pan árabe, repollo, queso, aceitunas, panceta, catupiry, huevo</div></div><div class="item-price">₲ 27.000</div></div>
+</section>
+
+<!-- ═══ HAMBURGUESAS ═══ -->
+<section id="hamburguesas" class="section">
+  <p class="section-title">🍔 Hamburguesas</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Simple</div><div class="item-desc">Pan de la casa, carne casera, cheddar</div></div><div class="item-price">₲ 14.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Completa</div><div class="item-desc">Pan de la casa, lechuga, tomate, carne casera, queso, huevo</div></div><div class="item-price">₲ 16.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Doble</div><div class="item-desc">Pan de la casa, lechuga, tomate, doble carne casera, queso, huevo</div></div><div class="item-price">₲ 25.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Doble Especial</div><div class="item-desc">Pan de la casa, lechuga, tomate, doble carne casera, cheddar, panceta, huevo</div></div><div class="item-price">₲ 28.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Especial</div><div class="item-desc">Pan de la casa, lechuga, tomate, carne casera, cheddar, panceta, huevo</div></div><div class="item-price">₲ 20.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Hamburguesa Triple</div><div class="item-desc">Pan de la casa, lechuga, tomate, triple carne casera, triple queso, huevo</div></div><div class="item-price">₲ 30.000</div></div>
+</section>
+
+<!-- ═══ PAPAS ═══ -->
+<section id="papas" class="section">
+  <p class="section-title">🍟 Papas Fritas</p>
+
+  <div class="item"><div class="item-info"><div class="item-name">Papas Fritas Chico</div><div class="item-desc">Porción individual</div></div><div class="item-price">₲ 12.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Papas Fritas Grande</div><div class="item-desc">Porción grande</div></div><div class="item-price">₲ 17.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Papas Rancheras Catupiry</div><div class="item-desc">Papas fritas con queso catupiry</div></div><div class="item-price">₲ 20.000</div></div>
+  <div class="item"><div class="item-info"><div class="item-name">Papas Rancheras Cheddar</div><div class="item-desc">Papas fritas con queso cheddar</div></div><div class="item-price">₲ 20.000</div></div>
+</section>
+
+<!-- ═══ BEBIDAS ═══ -->
+<section id="bebidas" class="section">
+  <p class="section-title">🥤 Bebidas</p>
+
+  <p class="section-title" style="margin-bottom:10px; color:#888; font-size:10px;">500 ML</p>
+  <div class="drinks-grid">
+    <div class="drink-item"><div class="drink-name">Coca Cola 500ml</div><div class="drink-price">₲ 7.000</div></div>
+    <div class="drink-item"><div class="drink-name">Sprite 500ml</div><div class="drink-price">₲ 7.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Naranja 500ml</div><div class="drink-price">₲ 7.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Guaraná 500ml</div><div class="drink-price">₲ 7.000</div></div>
+    <div class="drink-item"><div class="drink-name">Pulp 500ml</div><div class="drink-price">₲ 7.000</div></div>
+  </div>
+
+  <p class="section-title" style="margin-top:18px; margin-bottom:10px; color:#888; font-size:10px;">1 LITRO</p>
+  <div class="drinks-grid">
+    <div class="drink-item"><div class="drink-name">Coca Cola 1L</div><div class="drink-price">₲ 10.000</div></div>
+    <div class="drink-item"><div class="drink-name">Sprite 1L</div><div class="drink-price">₲ 10.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Naranja 1L</div><div class="drink-price">₲ 10.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Guaraná 1L</div><div class="drink-price">₲ 10.000</div></div>
+    <div class="drink-item"><div class="drink-name">Pulp 1L</div><div class="drink-price">₲ 10.000</div></div>
+  </div>
+
+  <p class="section-title" style="margin-top:18px; margin-bottom:10px; color:#888; font-size:10px;">1.5 – 2 LITROS</p>
+  <div class="drinks-grid">
+    <div class="drink-item"><div class="drink-name">Coca Cola 1.5L</div><div class="drink-price">₲ 13.000</div></div>
+    <div class="drink-item"><div class="drink-name">Coca Cola 2L</div><div class="drink-price">₲ 16.000</div></div>
+    <div class="drink-item"><div class="drink-name">Sprite 2L</div><div class="drink-price">₲ 16.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Naranja 2L</div><div class="drink-price">₲ 16.000</div></div>
+    <div class="drink-item"><div class="drink-name">Fanta Guaraná 2L</div><div class="drink-price">₲ 16.000</div></div>
+    <div class="drink-item"><div class="drink-name">Pulp 2L</div><div class="drink-price">₲ 15.000</div></div>
+    <div class="drink-item"><div class="drink-name">Crush Piña 2L</div><div class="drink-price">₲ 8.000</div></div>
+    <div class="drink-item"><div class="drink-name">Crush Pomelo 2L</div><div class="drink-price">₲ 8.000</div></div>
+    <div class="drink-item"><div class="drink-name">Crush Guaraná 2L</div><div class="drink-price">₲ 8.000</div></div>
+  </div>
+
+  <p class="section-title" style="margin-top:18px; margin-bottom:10px; color:#888; font-size:10px;">3 LITROS</p>
+  <div class="drinks-grid">
+    <div class="drink-item"><div class="drink-name">Coca Cola 3L</div><div class="drink-price">₲ 20.000</div></div>
+  </div>
+</section>
+
+<footer>
+  <p>Todos los precios en <span>guaraníes</span> · Menú sujeto a cambios</p>
+</footer>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
