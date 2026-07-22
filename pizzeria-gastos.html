@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>🍕 Gastos Pizzería</title>
+<style>
+  :root {
+    --primary: #e63946;
+    --primary-dark: #c1121f;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #212529;
+    --muted: #6c757d;
+    --border: #dee2e6;
+    --success: #198754;
+    --danger: #dc3545;
+    --shadow: 0 2px 8px rgba(0,0,0,0.10);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 15px; min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--primary); color: white; padding: 14px 16px 10px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(230,57,70,0.3);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header-left h1 { font-size: 20px; font-weight: 700; }
+  .header-left p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .header-config {
+    background: rgba(255,255,255,0.2); border: none; color: white;
+    font-size: 20px; width: 38px; height: 38px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex; background: white; border-bottom: 2px solid var(--border);
+    position: sticky; top: 62px; z-index: 99;
+  }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center; font-size: 12px;
+    font-weight: 600; color: var(--muted); cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .15s;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  /* CONTENIDO */
+  .content { padding: 14px 12px 100px; }
+
+  /* CARD */
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 14px; font-weight: 700; color: var(--primary);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* FORM */
+  .form-group { margin-bottom: 12px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 15px; background: white; color: var(--text);
+    appearance: none; -webkit-appearance: none; transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230,57,70,0.12);
+  }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* TOGGLE */
+  .toggle-group { display: flex; align-items: center; gap: 10px; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: var(--border);
+    border-radius: 24px; cursor: pointer; transition: .2s;
+  }
+  .slider:before {
+    content: ''; position: absolute; height: 18px; width: 18px;
+    left: 3px; bottom: 3px; background: white; border-radius: 50%;
+    transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  input:checked + .slider { background: var(--primary); }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  /* BOTONES */
+  .btn {
+    display: block; width: 100%; padding: 13px; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; transition: all .15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-danger { background: var(--danger); color: white; font-size: 13px; padding: 7px 12px; width: auto; border-radius: 6px; }
+
+  /* BOTÓN CÁMARA */
+  .scan-btn {
+    width: 100%; padding: 16px; border: 2.5px dashed var(--primary);
+    border-radius: 12px; background: #fff5f5; color: var(--primary);
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    text-align: center; margin-bottom: 14px; transition: all .15s;
+  }
+  .scan-btn:active { background: #fdecea; }
+  .scan-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+  #photoInput { display: none; }
+
+  /* PREVIEW IMAGEN */
+  .img-preview {
+    width: 100%; border-radius: 10px; margin-bottom: 10px;
+    border: 2px solid var(--border); display: none; max-height: 200px;
+    object-fit: cover;
+  }
+
+  /* ESTADO IA */
+  .ai-status {
+    display: none; background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+    text-align: center;
+  }
+  .ai-status .spinner {
+    display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-success {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border-radius: 10px; margin-bottom: 12px; color: white; font-weight: 600; font-size: 14px;
+  }
+  .ai-error {
+    background: #fdecea; border: 1.5px solid var(--danger); color: var(--danger);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; font-weight: 600;
+  }
+
+  /* FILTROS */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid var(--border); background: white; cursor: pointer; transition: all .15s;
+  }
+  .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .date-filter { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  /* RESUMEN CARDS */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .summary-card {
+    background: var(--card); border-radius: var(--radius); padding: 14px 12px;
+    box-shadow: var(--shadow); text-align: center;
+  }
+  .summary-card .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .summary-card .value { font-size: 20px; font-weight: 800; }
+  .summary-card.total .value { color: var(--primary); }
+  .summary-card.credito .value { color: var(--danger); }
+  .summary-card.contado .value { color: var(--success); }
+  .summary-card.count .value { color: #f4a261; }
+
+  /* ITEMS LISTA */
+  .item-card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 13px 14px; margin-bottom: 10px;
+    border-left: 4px solid var(--border);
+  }
+  .item-card.credito { border-left-color: var(--danger); }
+  .item-card.contado { border-left-color: var(--success); }
+  .item-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .item-comercio { font-weight: 700; font-size: 15px; }
+  .item-monto { font-weight: 800; font-size: 17px; color: var(--primary); }
+  .item-meta { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .badge-credito { background: #fdecea; color: var(--danger); }
+  .badge-contado { background: #e8f5e9; color: var(--success); }
+  .badge-factura { background: #e3f2fd; color: #1565c0; }
+  .badge-sinfactura { background: #fff3e0; color: #e65100; }
+  .badge-cat { background: #f3e5f5; color: #6a1b9a; }
+  .badge-ia { background: #ede7f6; color: #4527a0; }
+  .item-fecha { font-size: 12px; color: var(--muted); }
+  .item-desc { font-size: 13px; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .item-bottom { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+  /* TABLA */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f1f3f4; padding: 9px 10px; text-align: left; font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .td-monto { font-weight: 700; text-align: right; color: var(--primary); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty .icon { font-size: 48px; margin-bottom: 10px; }
+
+  /* SEARCH */
+  .search-box { position: relative; margin-bottom: 12px; }
+  .search-box input { padding-left: 36px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #212529; color: white; padding: 10px 20px; border-radius: 20px;
+    font-size: 14px; font-weight: 600; opacity: 0; transition: all .25s; z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* MODAL */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: white; border-radius: 16px; padding: 24px 20px; margin: 20px;
+    max-width: 340px; width: 100%; transform: scale(0.95); transition: transform .2s;
+  }
+  .overlay.show .modal { transform: scale(1); }
+  .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns .btn { flex: 1; }
+
+  /* CONFIG PANEL */
+  .config-panel {
+    position: fixed; inset: 0; background: var(--bg); z-index: 150;
+    transform: translateX(100%); transition: transform .25s;
+    overflow-y: auto; padding: 0 0 80px;
+  }
+  .config-panel.open { transform: translateX(0); }
+  .config-header {
+    background: var(--primary); color: white; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0;
+  }
+  .config-back {
+    background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1;
+  }
+  .config-header h2 { font-size: 18px; font-weight: 700; }
+  .config-body { padding: 16px 12px; }
+  .api-key-input { font-family: monospace; font-size: 13px; letter-spacing: 0.5px; }
+  .info-box {
+    background: #e8f5e9; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #2e7d32;
+  }
+  .info-box strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  .warn-box {
+    background: #fff3e0; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #e65100;
+  }
+  .step { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+  .step-num {
+    background: var(--primary); color: white; border-radius: 50%;
+    width: 24px; height: 24px; min-width: 24px; display: flex;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  }
+  .step p { font-size: 14px; line-height: 1.4; padding-top: 2px; }
+  .step a { color: var(--primary); font-weight: 600; }
+
+  /* TIPO */
+  .tipo-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tipo-btn {
+    padding: 10px; text-align: center; border-radius: 8px; cursor: pointer;
+    border: 2px solid var(--border); font-weight: 700; font-size: 14px; transition: all .15s;
+  }
+  .tipo-btn.selected { border-color: var(--primary); background: #fdecea; color: var(--primary); }
+
+  /* CAT RESUMEN */
+  .cat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-name { font-size: 14px; font-weight: 600; }
+  .cat-total { font-weight: 800; color: var(--primary); font-size: 15px; }
+  .progress-bar { height: 6px; background: #f1f3f4; border-radius: 3px; margin-top: 4px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--primary); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left" style="display:flex;align-items:center;gap:10px;">
+    <img id="headerLogo" src="" alt="" style="display:none;width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.5);" />
+    <div>
+      <h1 id="headerTitle">🍕 Pizzería Papá Oso</h1>
+      <p id="headerDate">Cargando...</p>
+    </div>
+  </div>
+  <button class="header-config" onclick="openConfig()" title="Configuración">⚙️</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('nuevo')">➕ Nuevo</div>
+  <div class="tab" onclick="showTab('lista')">📋 Registros</div>
+  <div class="tab" onclick="showTab('resumen')">📊 Resumen</div>
+</div>
+
+<div class="content">
+
+  <!-- ===== TAB NUEVO ===== -->
+  <div id="tab-nuevo">
+
+    <!-- BOTÓN CÁMARA IA -->
+    <div id="scan-section">
+      <label for="photoInput">
+        <div class="scan-btn" id="scanBtnUI">
+          <span class="scan-icon">📸</span>
+          <span>Fotografiar factura / ticket</span>
+          <div style="font-size:12px;opacity:0.7;margin-top:2px;font-weight:500;">La IA lee y rellena los datos automáticamente</div>
+        </div>
+      </label>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="procesarFoto(this)" />
+      <img id="imgPreview" class="img-preview" alt="Vista previa" />
+      <div id="aiStatus" class="ai-status"></div>
+      <div id="aiResult"></div>
+    </div>
+
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin:-4px 0 12px;font-weight:600;">— o completá manualmente —</div>
+
+    <div class="card">
+      <div class="card-title">📝 Registrar Compra / Gasto</div>
+
+      <div class="form-group">
+        <label>Tipo de registro</label>
+        <div class="tipo-selector">
+          <div class="tipo-btn selected" id="tipo-compra" onclick="selectTipo('compra')">🛒 Compra</div>
+          <div class="tipo-btn" id="tipo-gasto" onclick="selectTipo('gasto')">💸 Gasto</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="fecha" />
+      </div>
+
+      <div class="form-group">
+        <label>Comercio / Proveedor</label>
+        <input type="text" id="comercio" placeholder="Ej: Distribuidora Don Pedro" />
+      </div>
+
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="categoria">
+          <option value="Ingredientes">🧀 Ingredientes</option>
+          <option value="Envases y embalaje">📦 Envases y embalaje</option>
+          <option value="Servicios">💡 Servicios (luz, gas, agua)</option>
+          <option value="Personal">👥 Personal / Sueldos</option>
+          <option value="Limpieza">🧹 Limpieza</option>
+          <option value="Mantenimiento">🔧 Mantenimiento</option>
+          <option value="Publicidad">📢 Publicidad</option>
+          <option value="Transporte">🚗 Transporte / Delivery</option>
+          <option value="Otros">📌 Otros</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Monto ($)</label>
+        <input type="number" id="monto" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+      </div>
+
+      <div class="form-group">
+        <label>Forma de pago</label>
+        <select id="formaPago">
+          <option value="contado">💵 Contado</option>
+          <option value="credito">💳 Crédito / Fiado</option>
+          <option value="transferencia">📱 Transferencia</option>
+          <option value="cheque">🏦 Cheque</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Comprobante</label>
+        <div class="toggle-group" style="margin-bottom:10px;">
+          <label class="toggle">
+            <input type="checkbox" id="sinFactura" onchange="toggleFactura()" />
+            <span class="slider"></span>
+          </label>
+          <span id="facturaLabel" style="font-size:14px;font-weight:500;">Con factura / ticket</span>
+        </div>
+        <input type="text" id="nroFactura" placeholder="Nro. factura / ticket (ej: A-00123)" />
+      </div>
+
+      <div class="form-group">
+        <label>Descripción / Detalle (opcional)</label>
+        <textarea id="descripcion" rows="2" placeholder="Ej: 5kg harina, 2 latas salsa tomate..."></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="guardarRegistro()">✅ Guardar Registro</button>
+    </div>
+  </div>
+
+  <!-- ===== TAB LISTA ===== -->
+  <div id="tab-lista" class="hidden">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFiltro('hoy', this)">Hoy</button>
+      <button class="filter-btn" onclick="setFiltro('semana', this)">Semana</button>
+      <button class="filter-btn" onclick="setFiltro('mes', this)">Mes</button>
+      <button class="filter-btn" onclick="setFiltro('personalizado', this)">📅 Fechas</button>
+      <button class="filter-btn" onclick="setFiltro('todo', this)">Todo</button>
+    </div>
+    <div id="date-range-filter" class="date-filter hidden">
+      <input type="date" id="filtroDesde" onchange="renderLista()" />
+      <input type="date" id="filtroHasta" onchange="renderLista()" />
+    </div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchBox" placeholder="Buscar por comercio, categoría..." oninput="renderLista()" />
+    </div>
+    <div id="lista-container"></div>
+  </div>
+
+  <!-- ===== TAB RESUMEN ===== -->
+  <div id="tab-resumen" class="hidden">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFiltroResumen('hoy', this)">Hoy</button>
+      <button class="filter-btn" onclick="setFiltroResumen('semana', this)">Semana</button>
+      <button class="filter-btn" onclick="setFiltroResumen('mes', this)">Mes</button>
+      <button class="filter-btn" onclick="setFiltroResumen('anio', this)">Año</button>
+      <button class="filter-btn" onclick="setFiltroResumen('todo', this)">Todo</button>
+    </div>
+    <div id="resumen-container"></div>
+  </div>
+
+</div>
+
+<!-- PANEL CONFIGURACIÓN -->
+<div class="config-panel" id="configPanel">
+  <div class="config-header">
+    <button class="config-back" onclick="closeConfig()">←</button>
+    <h2>⚙️ Configuración</h2>
+  </div>
+  <div class="config-body">
+
+    <div class="info-box">
+      <strong>📸 Escaneo de facturas con IA</strong>
+      Sacás foto a cualquier factura o ticket y la IA detecta automáticamente el comercio, monto, fecha y número de comprobante.
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔑 Clave de API Anthropic</div>
+
+      <div style="margin-bottom:14px;">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Para obtener tu clave gratuita seguí estos pasos:</p>
+        <div class="step">
+          <div class="step-num">1</div>
+          <p>Entrá a <a href="https://console.anthropic.com" onclick="return false;">console.anthropic.com</a> y creá una cuenta gratuita.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <p>Andá a <strong>API Keys</strong> en el menú y hacé clic en <strong>"Create Key"</strong>.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <p>Copiá la clave (empieza con <code>sk-ant-</code>) y pegala abajo.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tu clave de API</label>
+        <div style="position:relative">
+          <textarea id="apiKeyInput" class="api-key-input" rows="3"
+            placeholder="Pegá acá tu clave: sk-ant-api03-..."
+            style="font-family:monospace;font-size:13px;resize:none;padding-right:44px;"></textarea>
+          <button onclick="pegarDesdePortapapeles()" title="Pegar"
+            style="position:absolute;top:8px;right:8px;background:var(--primary);color:white;border:none;border-radius:6px;padding:6px 8px;font-size:18px;cursor:pointer;line-height:1;">📋</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Mantené presionado el campo y elegí "Pegar", o tocá 📋</div>
+      </div>
+
+      <div class="warn-box" style="margin-bottom:12px;">
+        🔒 Tu clave se guarda solo en este dispositivo y nunca se comparte con nadie.
+      </div>
+
+      <button class="btn btn-primary" onclick="guardarApiKey()">💾 Guardar clave</button>
+
+      <div id="apiKeyStatus" style="margin-top:10px;font-size:13px;text-align:center;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🖼 Logo de la pizzería</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        <img id="logoPreviewConfig" src="" alt="Logo" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);" />
+        <div id="logoPlaceholder" style="width:72px;height:72px;border-radius:50%;background:#f1f3f4;display:flex;align-items:center;justify-content:center;font-size:32px;border:2px dashed var(--border);">🍕</div>
+        <div style="flex:1;">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">Tu logo aparece en la cabecera de la app.</p>
+          <label for="logoInput" style="display:inline-block;padding:8px 16px;background:var(--primary);color:white;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">📂 Elegir logo</label>
+          <input type="file" id="logoInput" accept="image/*" style="display:none;" onchange="cargarLogo(this)" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗂 Datos guardados</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:12px;" id="dataCount">Cargando...</p>
+      <button class="btn btn-outline" onclick="exportarDatos()" style="margin-bottom:8px;">📤 Exportar datos (JSON)</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL ELIMINAR -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>¿Eliminar registro?</h3>
+    <p>Esta acción no se puede deshacer.</p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ESTADO =====
+let registros = JSON.parse(localStorage.getItem('pizzeria_gastos') || '[]');
+let filtroListaActivo = 'hoy';
+let filtroResumen = 'mes';
+let tipoSeleccionado = 'compra';
+let deleteId = null;
+
+// ===== INIT =====
+function init() {
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha').value = hoy;
+  document.getElementById('filtroDesde') && (document.getElementById('filtroDesde').value = hoy);
+  document.getElementById('filtroHasta') && (document.getElementById('filtroHasta').value = hoy);
+  updateHeaderDate();
+  checkApiKey();
+  updateDataCount();
+  cargarLogoGuardado();
+}
+
+function cargarLogoGuardado() {
+  const logo = localStorage.getItem('pizzeria_logo');
+  if (logo) {
+    const img = document.getElementById('headerLogo');
+    img.src = logo;
+    img.style.display = 'block';
+    mostrarLogoConfig(logo);
+  }
+}
+
+function cargarLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    localStorage.setItem('pizzeria_logo', base64);
+    const img = document.getElementById('headerLogo');
+    img.src = base64;
+    img.style.display = 'block';
+    mostrarLogoConfig(base64);
+    showToast('✅ Logo guardado correctamente');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function mostrarLogoConfig(src) {
+  const prev = document.getElementById('logoPreviewConfig');
+  const placeholder = document.getElementById('logoPlaceholder');
+  if (prev && placeholder) {
+    prev.src = src;
+    prev.style.display = 'block';
+    placeholder.style.display = 'none';
+  }
+}
+
+function updateHeaderDate() {
+  const now = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('es-AR', opts);
+}
+
+function checkApiKey() {
+  const key = localStorage.getItem('anthropic_api_key');
+  const scanSection = document.getElementById('scan-section');
+  if (!key) {
+    // Mostrar aviso en la sección scan
+    document.getElementById('scanBtnUI').innerHTML = `
+      <span class="scan-icon">⚙️</span>
+      <span>Configurar escaneo con IA</span>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px;font-weight:500;">Tocá ⚙️ arriba para ingresar tu clave de API</div>
+    `;
+    document.getElementById('photoInput').disabled = true;
+  } else {
+    document.getElementById('scanBtnUI').innerHTML = `
+      <span class="scan-icon">📸</span>
+      <span>Fotografiar factura / ticket</span>
+      <div style="font-size:12px;opacity:0.7;margin-top:2px;font-weight:500;">La IA lee y rellena los datos automáticamente</div>
+    `;
+    document.getElementById('photoInput').disabled = false;
+  }
+}
+
+// ===== TABS =====
+function showTab(tab) {
+  ['nuevo','lista','resumen'].forEach(t => {
+    document.getElementById('tab-'+t).classList.add('hidden');
+  });
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  const idx = ['nuevo','lista','resumen'].indexOf(tab);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  if (tab === 'lista') renderLista();
+  if (tab === 'resumen') renderResumen();
+}
+
+// ===== CONFIG =====
+function openConfig() {
+  const key = localStorage.getItem('anthropic_api_key') || '';
+  document.getElementById('apiKeyInput').value = key;
+  document.getElementById('configPanel').classList.add('open');
+  updateDataCount();
+}
+function closeConfig() {
+  document.getElementById('configPanel').classList.remove('open');
+}
+async function pegarDesdePortapapeles() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('apiKeyInput').value = text.trim();
+    showToast('✅ Clave pegada');
+  } catch(e) {
+    showToast('⚠️ Mantené presionado el campo y elegí Pegar');
+  }
+}
+
+function guardarApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim().replace(/\s+/g, '');
+  if (!key) {
+    document.getElementById('apiKeyStatus').innerHTML = '<span style="color:var(--danger)">⚠️ Ingresá una clave válida.</span>';
+    return;
+  }
+  if (!key.startsWith('sk-ant-')) {
+    document.getElementById('apiKeyStatus').innerHTML = '<span style="color:var(--danger)">⚠️ La clave debe comenzar con sk-ant-</span>';
+    return;
+  }
+  localStorage.setItem('anthropic_api_key', key);
+  document.getElementById('apiKeyStatus').innerHTML = '<span style="color:var(--success)">✅ Clave guardada correctamente</span>';
+  checkApiKey();
+  setTimeout(() => { closeConfig(); }, 1200);
+}
+function updateDataCount() {
+  const el = document.getElementById('dataCount');
+  if (el) el.textContent = `${registros.length} registros guardados en este dispositivo.`;
+}
+
+// ===== TIPO =====
+function selectTipo(tipo) {
+  tipoSeleccionado = tipo;
+  document.getElementById('tipo-compra').classList.toggle('selected', tipo === 'compra');
+  document.getElementById('tipo-gasto').classList.toggle('selected', tipo === 'gasto');
+}
+
+// ===== TOGGLE FACTURA =====
+function toggleFactura() {
+  const sin = document.getElementById('sinFactura').checked;
+  document.getElementById('facturaLabel').textContent = sin ? 'Sin factura / sin ticket' : 'Con factura / ticket';
+  document.getElementById('nroFactura').disabled = sin;
+  document.getElementById('nroFactura').placeholder = sin ? 'N/A - Sin comprobante' : 'Nro. factura / ticket (ej: A-00123)';
+  if (sin) document.getElementById('nroFactura').value = '';
+}
+
+// ===== PROCESAR FOTO CON IA =====
+async function procesarFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const apiKey = localStorage.getItem('anthropic_api_key');
+
+  if (!apiKey) {
+    showToast('⚙️ Primero configurá tu clave de API');
+    openConfig();
+    return;
+  }
+
+  // Mostrar preview
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    const imgEl = document.getElementById('imgPreview');
+    imgEl.src = base64;
+    imgEl.style.display = 'block';
+
+    // Estado cargando
+    const statusEl = document.getElementById('aiStatus');
+    const resultEl = document.getElementById('aiResult');
+    resultEl.innerHTML = '';
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<span class="spinner"></span> La IA está leyendo tu factura...';
+
+    try {
+      const b64data = base64.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-calls': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 500,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: { type: 'base64', media_type: mediaType, data: b64data }
+              },
+              {
+                type: 'text',
+                text: `Analizá esta factura/ticket/comprobante y extraé la información. Respondé ÚNICAMENTE con un JSON válido con exactamente estos campos:
+{
+  "comercio": "nombre del comercio o proveedor (string, vacío si no se ve)",
+  "monto": número total a pagar en formato numérico sin signos (ej: 1250.50),
+  "fecha": "fecha en formato YYYY-MM-DD (hoy si no se ve)",
+  "nroFactura": "número de factura/ticket (vacío si no hay)",
+  "sinFactura": false o true (true si no tiene número de comprobante),
+  "categoria": una de estas opciones: "Ingredientes", "Envases y embalaje", "Servicios", "Personal", "Limpieza", "Mantenimiento", "Publicidad", "Transporte", "Otros",
+  "descripcion": "breve descripción de los productos/servicios (máx 80 caracteres)",
+  "tipo": "compra" o "gasto",
+  "formaPago": "contado" o "credito" o "transferencia" (contado si no se especifica)
+}
+Solo respondé el JSON, sin explicaciones ni texto adicional.`
+              }
+            ]
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.content[0].text.trim();
+
+      // Extraer JSON de la respuesta
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('La IA no devolvió datos válidos');
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Rellenar formulario
+      statusEl.style.display = 'none';
+      rellenarFormulario(parsed);
+
+      resultEl.innerHTML = `
+        <div class="ai-success">
+          <span style="font-size:24px">✨</span>
+          <div>
+            <div>¡Factura leída correctamente!</div>
+            <div style="font-size:12px;opacity:.85;margin-top:2px;">Revisá los datos y guardá el registro.</div>
+          </div>
+        </div>
+      `;
+
+    } catch (err) {
+      statusEl.style.display = 'none';
+      let msg = err.message || 'Error desconocido';
+      if (msg.includes('401') || msg.includes('authentication')) {
+        msg = 'Clave de API inválida. Revisá tu configuración.';
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        msg = 'Sin conexión a internet. Completá el formulario manualmente.';
+      }
+      resultEl.innerHTML = `<div class="ai-error">❌ ${escHtml(msg)}</div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function rellenarFormulario(data) {
+  if (data.comercio) document.getElementById('comercio').value = data.comercio;
+  if (data.monto) document.getElementById('monto').value = data.monto;
+  if (data.fecha) document.getElementById('fecha').value = data.fecha;
+  if (data.nroFactura) document.getElementById('nroFactura').value = data.nroFactura;
+  if (data.descripcion) document.getElementById('descripcion').value = data.descripcion;
+  if (data.sinFactura !== undefined) {
+    document.getElementById('sinFactura').checked = data.sinFactura;
+    toggleFactura();
+  }
+  if (data.categoria) {
+    const sel = document.getElementById('categoria');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === data.categoria) { sel.selectedIndex = i; break; }
+    }
+  }
+  if (data.formaPago) {
+    const sel = document.getElementById('formaPago');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === data.formaPago) { sel.selectedIndex = i; break; }
+    }
+  }
+  if (data.tipo) selectTipo(data.tipo);
+  // Scroll al formulario
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== GUARDAR =====
+function guardarRegistro() {
+  const comercio = document.getElementById('comercio').value.trim();
+  const monto = parseFloat(document.getElementById('monto').value);
+  const fecha = document.getElementById('fecha').value;
+
+  if (!comercio) return showToast('⚠️ Ingresá el nombre del comercio');
+  if (!monto || monto <= 0) return showToast('⚠️ Ingresá un monto válido');
+  if (!fecha) return showToast('⚠️ Ingresá la fecha');
+
+  const sinFactura = document.getElementById('sinFactura').checked;
+  const nroFactura = sinFactura ? 'Sin comprobante' : (document.getElementById('nroFactura').value.trim() || 'Sin nro.');
+
+  const registro = {
+    id: Date.now(),
+    tipo: tipoSeleccionado,
+    fecha,
+    comercio,
+    categoria: document.getElementById('categoria').value,
+    monto,
+    formaPago: document.getElementById('formaPago').value,
+    sinFactura,
+    nroFactura,
+    descripcion: document.getElementById('descripcion').value.trim(),
+    escaneadoIA: document.getElementById('imgPreview').style.display !== 'none',
+    creado: new Date().toISOString()
+  };
+
+  registros.unshift(registro);
+  saveData();
+  resetForm();
+  showToast('✅ Registro guardado correctamente');
+}
+
+function resetForm() {
+  document.getElementById('comercio').value = '';
+  document.getElementById('monto').value = '';
+  document.getElementById('descripcion').value = '';
+  document.getElementById('nroFactura').value = '';
+  document.getElementById('sinFactura').checked = false;
+  document.getElementById('nroFactura').disabled = false;
+  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('aiResult').innerHTML = '';
+  document.getElementById('aiStatus').style.display = 'none';
+  document.getElementById('photoInput').value = '';
+  toggleFactura();
+  selectTipo('compra');
+}
+
+function saveData() {
+  localStorage.setItem('pizzeria_gastos', JSON.stringify(registros));
+}
+
+// ===== FILTROS =====
+function setFiltro(f, el) {
+  filtroListaActivo = f;
+  document.querySelectorAll('#tab-lista .filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('date-range-filter').classList.toggle('hidden', f !== 'personalizado');
+  renderLista();
+}
+
+function setFiltroResumen(f, el) {
+  filtroResumen = f;
+  document.querySelectorAll('#tab-resumen .filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderResumen();
+}
+
+function getFechaRango(modo) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let desde, hasta = new Date(); hasta.setHours(23,59,59,999);
+  if (modo === 'hoy') { desde = new Date(hoy); }
+  else if (modo === 'semana') { desde = new Date(hoy); desde.setDate(desde.getDate() - desde.getDay()); }
+  else if (modo === 'mes') { desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+  else if (modo === 'anio') { desde = new Date(hoy.getFullYear(), 0, 1); }
+  else if (modo === 'personalizado') {
+    const d = document.getElementById('filtroDesde').value;
+    const h = document.getElementById('filtroHasta').value;
+    desde = d ? new Date(d + 'T00:00:00') : new Date(0);
+    hasta = h ? new Date(h + 'T23:59:59') : new Date();
+  } else { return null; }
+  return { desde, hasta };
+}
+
+function filtrarRegistros(modo, busqueda = '') {
+  const rango = getFechaRango(modo);
+  return registros.filter(r => {
+    const fecha = new Date(r.fecha + 'T12:00:00');
+    const enRango = !rango || (fecha >= rango.desde && fecha <= rango.hasta);
+    const match = !busqueda || [r.comercio, r.categoria, r.descripcion, r.nroFactura].join(' ').toLowerCase().includes(busqueda.toLowerCase());
+    return enRango && match;
+  });
+}
+
+// ===== RENDER LISTA =====
+function renderLista() {
+  const busqueda = document.getElementById('searchBox').value;
+  const items = filtrarRegistros(filtroListaActivo, busqueda);
+  const cont = document.getElementById('lista-container');
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty"><div class="icon">📋</div><p>No hay registros para este período.</p></div>`;
+    return;
+  }
+  const total = items.reduce((s, r) => s + r.monto, 0);
+  cont.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#e63946,#c1121f);color:white;padding:12px 16px;margin-bottom:12px;">
+      <div style="font-size:12px;opacity:.85;font-weight:600;">TOTAL PERÍODO</div>
+      <div style="font-size:26px;font-weight:800;">$${formatMonto(total)}</div>
+      <div style="font-size:12px;opacity:.8;margin-top:2px;">${items.length} registro${items.length !== 1 ? 's' : ''}</div>
+    </div>
+    ${items.map(r => renderItem(r)).join('')}
+  `;
+}
+
+function renderItem(r) {
+  const pagoLabel = { contado:'💵 Contado', credito:'💳 Crédito', transferencia:'📱 Transf.', cheque:'🏦 Cheque' }[r.formaPago] || r.formaPago;
+  const tipoIcon = r.tipo === 'compra' ? '🛒' : '💸';
+  return `
+    <div class="item-card ${r.formaPago === 'credito' ? 'credito' : 'contado'}">
+      <div class="item-top">
+        <div>
+          <div class="item-comercio">${tipoIcon} ${escHtml(r.comercio)}</div>
+          <div class="item-fecha">${formatFecha(r.fecha)}</div>
+        </div>
+        <div class="item-monto">$${formatMonto(r.monto)}</div>
+      </div>
+      <div class="item-meta">
+        <span class="badge ${r.formaPago === 'credito' ? 'badge-credito' : 'badge-contado'}">${pagoLabel}</span>
+        <span class="badge ${r.sinFactura ? 'badge-sinfactura' : 'badge-factura'}">${r.sinFactura ? '⚠️ Sin comprobante' : '🧾 ' + escHtml(r.nroFactura)}</span>
+        <span class="badge badge-cat">📂 ${escHtml(r.categoria)}</span>
+        ${r.escaneadoIA ? '<span class="badge badge-ia">✨ IA</span>' : ''}
+      </div>
+      ${r.descripcion ? `<div class="item-desc">📝 ${escHtml(r.descripcion)}</div>` : ''}
+      <div class="item-bottom">
+        <button class="btn btn-danger" onclick="pedirEliminar(${r.id})">🗑 Eliminar</button>
+      </div>
+    </div>
+  `;
+}
+
+// ===== RENDER RESUMEN =====
+function renderResumen() {
+  const items = filtrarRegistros(filtroResumen);
+  const cont = document.getElementById('resumen-container');
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty"><div class="icon">📊</div><p>No hay datos para este período.</p></div>`;
+    return;
+  }
+  const total = items.reduce((s, r) => s + r.monto, 0);
+  const credito = items.filter(r => r.formaPago === 'credito').reduce((s, r) => s + r.monto, 0);
+  const contado = items.filter(r => r.formaPago !== 'credito').reduce((s, r) => s + r.monto, 0);
+  const sinFact = items.filter(r => r.sinFactura).length;
+  const compras = items.filter(r => r.tipo === 'compra').reduce((s, r) => s + r.monto, 0);
+  const gastos = items.filter(r => r.tipo === 'gasto').reduce((s, r) => s + r.monto, 0);
+  const catMap = {};
+  items.forEach(r => { catMap[r.categoria] = (catMap[r.categoria] || 0) + r.monto; });
+  const cats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  const comMap = {};
+  items.forEach(r => {
+    if (!comMap[r.comercio]) comMap[r.comercio] = { total: 0, count: 0 };
+    comMap[r.comercio].total += r.monto; comMap[r.comercio].count++;
+  });
+  const coms = Object.entries(comMap).sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+  const diaMap = {};
+  items.forEach(r => { diaMap[r.fecha] = (diaMap[r.fecha] || 0) + r.monto; });
+  const dias = Object.entries(diaMap).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 10);
+
+  cont.innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-card total"><div class="label">Total período</div><div class="value">$${formatMonto(total)}</div></div>
+      <div class="summary-card count"><div class="label">Registros</div><div class="value">${items.length}</div></div>
+      <div class="summary-card credito"><div class="label">💳 Crédito</div><div class="value">$${formatMonto(credito)}</div></div>
+      <div class="summary-card contado"><div class="label">💵 Contado</div><div class="value">$${formatMonto(contado)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🛒 Compras vs 💸 Gastos</div>
+      <div class="row-2">
+        <div style="text-align:center;padding:10px;background:#f8f9fa;border-radius:8px;">
+          <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Compras</div>
+          <div style="font-size:20px;font-weight:800;color:#1565c0;">$${formatMonto(compras)}</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:#f8f9fa;border-radius:8px;">
+          <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Gastos</div>
+          <div style="font-size:20px;font-weight:800;color:var(--danger);">$${formatMonto(gastos)}</div>
+        </div>
+      </div>
+      ${sinFact > 0 ? `<div style="margin-top:10px;padding:8px 12px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;font-weight:600;">⚠️ ${sinFact} registro${sinFact > 1 ? 's' : ''} sin comprobante</div>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-title">📂 Por Categoría</div>
+      ${cats.map(([cat, monto]) => `
+        <div class="cat-row">
+          <div style="flex:1">
+            <div class="cat-name">${escHtml(cat)}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(monto/total*100)}%"></div></div>
+          </div>
+          <div style="text-align:right;padding-left:12px;">
+            <div class="cat-total">$${formatMonto(monto)}</div>
+            <div style="font-size:11px;color:var(--muted);">${Math.round(monto/total*100)}%</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">🏪 Por Comercio / Proveedor</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Comercio</th><th>Cant.</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${coms.map(([com, d]) => `<tr><td>${escHtml(com)}</td><td>${d.count}</td><td class="td-monto">$${formatMonto(d.total)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Por Día</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Regist.</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${dias.map(([fecha, monto]) => {
+            const cnt = items.filter(r => r.fecha === fecha).length;
+            return `<tr><td>${formatFecha(fecha)}</td><td>${cnt}</td><td class="td-monto">$${formatMonto(monto)}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle Completo</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Comercio</th><th>Comprobante</th><th>Pago</th><th style="text-align:right">Monto</th></tr></thead>
+          <tbody>
+            ${items.map(r => `
+              <tr>
+                <td style="white-space:nowrap">${formatFechaCorta(r.fecha)}</td>
+                <td>${escHtml(r.comercio)}<br><small style="color:var(--muted)">${escHtml(r.categoria)}</small></td>
+                <td style="font-size:12px">${r.sinFactura ? '⚠️ S/C' : '🧾 '+escHtml(r.nroFactura)}</td>
+                <td style="font-size:12px">${r.formaPago}</td>
+                <td class="td-monto">$${formatMonto(r.monto)}</td>
+              </tr>
+            `).join('')}
+            <tr style="background:#f8f9fa;font-weight:700">
+              <td colspan="4">TOTAL</td><td class="td-monto">$${formatMonto(total)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ===== ELIMINAR =====
+function pedirEliminar(id) {
+  deleteId = id;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+  deleteId = null;
+}
+function confirmarEliminar() {
+  registros = registros.filter(r => r.id !== deleteId);
+  saveData();
+  closeModal();
+  renderLista();
+  showToast('🗑 Registro eliminado');
+}
+
+// ===== EXPORTAR =====
+function exportarDatos() {
+  const data = JSON.stringify(registros, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pizzeria-gastos-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== UTILS =====
+function formatMonto(n) {
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatFecha(str) {
+  if (!str) return '';
+  const [y, m, d] = str.split('-');
+  return `${d}/${m}/${y}`;
+}
+function formatFechaCorta(str) {
+  if (!str) return '';
+  const [y, m, d] = str.split('-');
+  return `${d}/${m}/${String(y).slice(2)}`;
+}
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ===== START =====
+init();
+</script>
+</body>
+</html>
