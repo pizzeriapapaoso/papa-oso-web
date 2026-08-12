@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>🍕 Gastos Pizzería</title>
 <script>
 // Desregistrar service workers y recargar si es necesario
@@ -342,7 +345,8 @@ if ('serviceWorker' in navigator) {
       <div id="aiResult"></div>
     </div>
 
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin:-4px 0 12px;font-weight:600;">— o completá manualmente —</div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin:-4px 0 4px;font-weight:600;">— o completá manualmente —</div>
+    <div style="text-align:center;color:#adb5bd;font-size:11px;margin:0 0 12px;">app v11 · fecha corregida (Paraguay)</div>
 
     <div class="card">
       <div class="card-title">📝 Registrar Compra / Gasto</div>
@@ -412,7 +416,7 @@ if ('serviceWorker' in navigator) {
         <textarea id="descripcion" rows="2" placeholder="Ej: 5kg harina, 2 latas salsa tomate..."></textarea>
       </div>
 
-      <button class="btn btn-primary" onclick="guardarRegistro()">✅ Guardar Registro</button>
+      <button class="btn btn-primary" id="btnGuardar" onclick="guardarRegistro()">✅ Guardar Registro</button>
     </div>
   </div>
 
@@ -542,10 +546,16 @@ if ('serviceWorker' in navigator) {
     </div>
 
     <div class="card">
-      <div class="card-title">🗂 Datos guardados</div>
-      <p style="font-size:14px;color:var(--muted);margin-bottom:12px;" id="dataCount">Cargando...</p>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">💡 Consejo: exportá tus datos de vez en cuando como respaldo de seguridad.</p>
-      <button class="btn btn-outline" onclick="exportarDatos()" style="margin-bottom:8px;">📤 Exportar datos (JSON)</button>
+      <div class="card-title">💾 Respaldo de seguridad</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:8px;" id="dataCount">Cargando...</p>
+      <div id="estadoRespaldo" style="font-size:13px;font-weight:600;margin-bottom:12px;"></div>
+      <div class="warn-box" style="margin-bottom:12px;">
+        <strong>⚠️ Muy importante:</strong> el iPhone puede borrar los datos guardados. Tocá <strong>"Respaldar ahora"</strong> seguido (una vez por día) y guardá el archivo en <strong>Archivos / iCloud</strong> o mandátelo por WhatsApp. Así siempre podés recuperar todo.
+      </div>
+      <button class="btn btn-primary" onclick="exportarDatos()" style="margin-bottom:8px;">💾 Respaldar ahora</button>
+      <label for="restoreInput" class="btn btn-outline" style="display:block;margin-bottom:4px;cursor:pointer;text-align:center;">♻️ Restaurar desde un respaldo</label>
+      <input type="file" id="restoreInput" accept=".json,application/json" style="display:none;" onchange="importarRespaldo(this)" />
+      <p style="font-size:12px;color:var(--muted);margin-top:6px;">Si alguna vez se borran los datos, usá "Restaurar" y elegí el último archivo de respaldo que guardaste.</p>
     </div>
 
   </div>
@@ -648,6 +658,7 @@ let filtroListaActivo = 'hoy';
 let filtroResumen = 'mes';
 let tipoSeleccionado = 'compra';
 let deleteId = null;
+let editandoId = null;
 
 // ===== RESTAURAR DESDE INDEXEDDB (por si localStorage se borró) =====
 async function restaurarDatos() {
@@ -692,7 +703,7 @@ async function restaurarDatos() {
 function init() {
   restaurarDatos();
   try {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaHoyLocal();
     const fechaEl = document.getElementById('fecha');
     if (fechaEl) fechaEl.value = hoy;
     const desdeEl = document.getElementById('filtroDesde');
@@ -707,6 +718,7 @@ function init() {
   try { checkApiKey(); } catch(e) {}
   try { updateDataCount(); } catch(e) {}
   try { cargarLogoGuardado(); } catch(e) {}
+  setTimeout(function(){ try { revisarRespaldo(); } catch(e) {} }, 400);
   // Aviso si el almacenamiento no es permanente
   if (store.isMemory()) {
     const banner = document.createElement('div');
@@ -752,6 +764,10 @@ function mostrarLogoConfig(src) {
   }
 }
 
+function fechaHoyLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 function updateHeaderDate() {
   const now = new Date();
   const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -859,13 +875,14 @@ function comprimirImagen(file) {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX = 1024;
+        const MAX = 1600; // más resolución para leer letra chica de tickets
         let w = img.width, h = img.height;
         if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
         else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
       };
       img.src = e.target.result;
     };
@@ -999,7 +1016,11 @@ Solo respondé el JSON, sin explicaciones ni texto adicional.`;
                 { inline_data: { mime_type: 'image/jpeg', data: b64data } },
                 { text: prompt }
               ]}],
-              generationConfig: { maxOutputTokens: 800, temperature: 0.1 }
+              generationConfig: {
+                maxOutputTokens: 4096,
+                temperature: 0.1,
+                responseMimeType: 'application/json'
+              }
             })
           });
           const data = await resp.json().catch(() => ({}));
@@ -1009,9 +1030,14 @@ Solo respondé el JSON, sin explicaciones ni texto adicional.`;
             if ((data.error?.message || '').includes('not found') || resp.status === 404) break;
             continue; // probar otro método de auth
           }
-          const t = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          // Juntar el texto de todas las partes de la respuesta
+          const cand = data.candidates?.[0];
+          const partes = cand?.content?.parts || [];
+          const t = partes.map(p => p.text || '').join('').trim();
           if (t) { text = t; modeloUsado = modelo; break; }
-          ultimoError = `${modelo}: respuesta vacía`;
+          // Sin texto: puede ser que gastó todo pensando (MAX_TOKENS) — probar siguiente modelo
+          ultimoError = `${modelo}: respuesta vacía (${cand?.finishReason || 'sin razón'})`;
+          break;
         } catch(e) {
           ultimoError = `${modelo}: ${e.message}`;
         }
@@ -1021,9 +1047,21 @@ Solo respondé el JSON, sin explicaciones ni texto adicional.`;
 
     if (!text) throw new Error(ultimoError || 'Ningún modelo pudo leer la factura');
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('La IA no devolvió datos válidos');
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Intentar leer el JSON de la respuesta (varias formas por si viene con formato extra)
+    let parsed = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch(e1) {
+      // Quitar posibles ```json ``` y buscar el objeto
+      const limpio = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      try {
+        parsed = JSON.parse(limpio);
+      } catch(e2) {
+        const jsonMatch = limpio.match(/\{[\s\S]*\}/);
+        if (jsonMatch) { try { parsed = JSON.parse(jsonMatch[0]); } catch(e3) {} }
+      }
+    }
+    if (!parsed) throw new Error('La IA respondió pero no pude leer los datos. Respondió: ' + text.slice(0, 120));
 
     statusEl.style.display = 'none';
     rellenarFormulario(parsed);
@@ -1060,7 +1098,7 @@ Solo respondé el JSON, sin explicaciones ni texto adicional.`;
 function rellenarFormulario(data) {
   if (data.comercio) document.getElementById('comercio').value = data.comercio;
   if (data.monto) document.getElementById('monto').value = data.monto;
-  if (data.fecha) document.getElementById('fecha').value = data.fecha;
+  if (data.fecha) document.getElementById('fecha').value = sanitizarFecha(data.fecha);
   if (data.nroFactura) document.getElementById('nroFactura').value = data.nroFactura;
   if (data.descripcion) document.getElementById('descripcion').value = data.descripcion;
   if (data.sinFactura !== undefined) {
@@ -1084,6 +1122,49 @@ function rellenarFormulario(data) {
   document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ===== EDITAR REGISTRO =====
+function setSelect(id, val) {
+  const sel = document.getElementById(id);
+  if (!sel || val == null) return;
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
+  }
+}
+function sanitizarFecha(str) {
+  const hoy = fechaHoyLocal();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return hoy;
+  const anio = parseInt(str.slice(0,4), 10);
+  const actual = new Date().getFullYear();
+  // Año disparatado (la IA a veces lee mal) -> usar hoy
+  if (anio < actual - 1 || anio > actual) return hoy;
+  // No permitir fechas futuras
+  if (str > hoy) return hoy;
+  return str;
+}
+function editarRegistro(id) {
+  const r = registros.find(x => x.id === id);
+  if (!r) return;
+  editandoId = id;
+  document.getElementById('comercio').value = r.comercio || '';
+  document.getElementById('monto').value = r.monto || '';
+  document.getElementById('fecha').value = r.fecha || fechaHoyLocal();
+  setSelect('categoria', r.categoria);
+  setSelect('formaPago', r.formaPago);
+  document.getElementById('sinFactura').checked = !!r.sinFactura;
+  toggleFactura();
+  if (!r.sinFactura) {
+    const nf = (r.nroFactura && r.nroFactura !== 'Sin nro.' && r.nroFactura !== 'Sin comprobante') ? r.nroFactura : '';
+    document.getElementById('nroFactura').value = nf;
+  }
+  document.getElementById('descripcion').value = r.descripcion || '';
+  selectTipo(r.tipo || 'compra');
+  showTab('nuevo');
+  const bg = document.getElementById('btnGuardar');
+  if (bg) bg.textContent = '💾 Actualizar Registro';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('✏️ Editá los datos y tocá Actualizar');
+}
+
 // ===== GUARDAR =====
 function guardarRegistro() {
   const comercio = document.getElementById('comercio').value.trim();
@@ -1096,6 +1177,25 @@ function guardarRegistro() {
 
   const sinFactura = document.getElementById('sinFactura').checked;
   const nroFactura = sinFactura ? 'Sin comprobante' : (document.getElementById('nroFactura').value.trim() || 'Sin nro.');
+
+  // MODO EDICIÓN — actualizar registro existente
+  if (editandoId) {
+    const idx = registros.findIndex(r => r.id === editandoId);
+    if (idx >= 0) {
+      registros[idx] = { ...registros[idx],
+        tipo: tipoSeleccionado, fecha, comercio,
+        categoria: document.getElementById('categoria').value, monto,
+        formaPago: document.getElementById('formaPago').value,
+        sinFactura, nroFactura,
+        descripcion: document.getElementById('descripcion').value.trim() };
+    }
+    editandoId = null;
+    saveData();
+    resetForm();
+    showTab('lista');
+    showToast('✅ Registro actualizado');
+    return;
+  }
 
   const registro = {
     id: Date.now(),
@@ -1125,13 +1225,16 @@ function resetForm() {
   document.getElementById('nroFactura').value = '';
   document.getElementById('sinFactura').checked = false;
   document.getElementById('nroFactura').disabled = false;
-  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha').value = fechaHoyLocal();
   document.getElementById('imgPreview').style.display = 'none';
   document.getElementById('aiResult').innerHTML = '';
   document.getElementById('aiStatus').style.display = 'none';
   document.getElementById('photoInput').value = '';
   toggleFactura();
   selectTipo('compra');
+  editandoId = null;
+  const _bg = document.getElementById('btnGuardar');
+  if (_bg) _bg.textContent = '✅ Guardar Registro';
 }
 
 function saveData() {
@@ -1221,7 +1324,8 @@ function renderItem(r) {
         ${r.escaneadoIA ? '<span class="badge badge-ia">✨ IA</span>' : ''}
       </div>
       ${r.descripcion ? `<div class="item-desc">📝 ${escHtml(r.descripcion)}</div>` : ''}
-      <div class="item-bottom">
+      <div class="item-bottom" style="gap:8px;">
+        <button class="btn btn-outline" style="width:auto;font-size:13px;padding:7px 12px;border-radius:6px;" onclick="editarRegistro(${r.id})">✏️ Editar</button>
         <button class="btn btn-danger" onclick="pedirEliminar(${r.id})">🗑 Eliminar</button>
       </div>
     </div>
@@ -1355,15 +1459,99 @@ function confirmarEliminar() {
 }
 
 // ===== EXPORTAR =====
-function exportarDatos() {
+async function exportarDatos() {
+  if (!registros.length) { showToast('No hay registros para respaldar'); return; }
   const data = JSON.stringify(registros, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `pizzeria-gastos-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const fecha = fechaHoyLocal();
+  const nombre = `PapaOso-respaldo-${fecha}.json`;
+  // 1) Intentar la hoja de compartir de iOS (guardar en Archivos/iCloud o WhatsApp)
+  try {
+    const file = new File([data], nombre, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Respaldo Papá Oso', text: 'Respaldo de gastos Papá Oso' });
+      marcarRespaldo();
+      showToast('✅ Respaldo guardado');
+      return;
+    }
+  } catch(e) { if (e && e.name === 'AbortError') return; }
+  // 2) Fallback: descarga normal
+  try {
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre; a.click();
+    URL.revokeObjectURL(url);
+    marcarRespaldo();
+    showToast('✅ Respaldo generado');
+  } catch(e) { showToast('⚠️ No se pudo generar el respaldo'); }
+}
+
+function marcarRespaldo() {
+  const ahora = Date.now();
+  store.setRaw('pizzeria_ultimo_respaldo', String(ahora));
+  idb.set('pizzeria_ultimo_respaldo', ahora);
+  store.setRaw('pizzeria_respaldo_count', String(registros.length));
+  const b = document.getElementById('backupBanner'); if (b) b.remove();
+  try { actualizarEstadoRespaldo(); } catch(e) {}
+}
+
+function importarRespaldo(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const raw = JSON.parse(e.target.result);
+      const lista = Array.isArray(raw) ? raw : (raw.registros || []);
+      if (!Array.isArray(lista) || !lista.length) { showToast('⚠️ El archivo no tiene registros'); input.value=''; return; }
+      const ids = {}; registros.forEach(r => { ids[r.id] = 1; });
+      let nuevos = 0;
+      lista.forEach(r => { if (r && r.id && !ids[r.id]) { registros.push(r); nuevos++; } });
+      registros.sort((a,b) => (b.id||0) - (a.id||0));
+      saveData();
+      updateDataCount();
+      try { renderLista(); } catch(e) {}
+      showToast(`✅ ${nuevos} registro(s) restaurados`);
+    } catch(err) { showToast('⚠️ No pude leer ese archivo'); }
+    input.value = '';
+  };
+  reader.readAsText(input.files[0]);
+}
+
+function actualizarEstadoRespaldo() {
+  const el = document.getElementById('estadoRespaldo');
+  if (!el) return;
+  const ultimo = parseInt(store.raw('pizzeria_ultimo_respaldo') || '0', 10);
+  if (!ultimo) {
+    el.innerHTML = '<span style="color:var(--danger)">⚠️ Nunca respaldaste. Tocá "Respaldar ahora".</span>';
+    return;
+  }
+  const horas = Math.floor((Date.now() - ultimo) / 3600000);
+  if (horas < 24) {
+    el.innerHTML = `<span style="color:var(--success)">✅ Último respaldo: hace ${horas} h.</span>`;
+  } else {
+    const dias = Math.floor(horas/24);
+    el.innerHTML = `<span style="color:var(--danger)">⚠️ Último respaldo hace ${dias} día(s). Conviene respaldar de nuevo.</span>`;
+  }
+}
+
+function revisarRespaldo() {
+  try {
+    actualizarEstadoRespaldo();
+    if (!registros.length) return;
+    const ultimo = parseInt(store.raw('pizzeria_ultimo_respaldo') || '0', 10);
+    const horas = ultimo ? (Date.now() - ultimo) / 3600000 : 999;
+    if (horas >= 24) {
+      const cont = document.querySelector('.content');
+      if (cont && !document.getElementById('backupBanner')) {
+        const b = document.createElement('div');
+        b.id = 'backupBanner';
+        b.style.cssText = 'background:#fff3e0;border:1.5px solid #ffcc80;color:#e65100;padding:11px 14px;font-size:13px;font-weight:600;border-radius:10px;margin-bottom:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;';
+        b.innerHTML = '<span>💾 Hacé un respaldo para no perder tus datos.</span>' +
+          '<button onclick="exportarDatos()" style="background:#e65100;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">Respaldar</button>';
+        cont.prepend(b);
+      }
+    }
+  } catch(e) {}
 }
 
 // ===== UTILS =====
