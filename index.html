@@ -110,6 +110,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--m);padding:
 .bpago{padding:.5rem;border:2px solid var(--cd);border-radius:8px;background:white;font-family:'Nunito',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;text-align:center}
 .bpago:hover{border-color:var(--r);color:var(--r)}
 .bpago.sel{background:var(--r);border-color:var(--r);color:white}
+.bpos{width:100%;background:var(--r);color:#fff;border:none;padding:1rem;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;margin-top:.6rem;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.bpos:disabled{opacity:.6;cursor:wait}
+#pos-ok-ovl{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.2rem}
+#pos-ok-ovl .okbox{max-width:340px;width:100%;margin:0}
+.okbox{background:#e8f6ec;border:2px solid #34a853;border-radius:14px;padding:1.3rem;margin-top:.7rem;text-align:center}
+.okbox .okref{font-size:1.6rem;font-weight:900;color:#1e7a37;letter-spacing:1px;margin:.3rem 0}
+.okbox .oktxt{font-size:.85rem;color:#2b6b3d;font-weight:700}
 .bwa{width:100%;background:#25D366;color:white;border:none;padding:.85rem;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;cursor:pointer;margin-top:.4rem}
 .bwa:hover{background:#1da355}
 /* LOGIN */
@@ -345,9 +352,7 @@ footer a{color:#25D366;text-decoration:none;font-weight:700}
 </div>
 
 <!-- FOOTER -->
-<footer id="footer"><p style="margin-top:.8rem;font-size:.75rem;opacity:.6;">
-  Razón social: <strong>Sosa Meaurio Mario Gabriel</strong> · Todos los derechos reservados.
-</p>
+<footer id="footer">
   <strong>🐻 Pizzería y Lomitería Papa Oso</strong><br/>
   📍 Limpio, Paraguay<br/><br/>
   <a href="https://wa.me/595984563428" target="_blank">💬 Pedidos por WhatsApp</a>
@@ -387,7 +392,8 @@ footer a{color:#25D366;text-decoration:none;font-weight:700}
       <button class="bpago" onclick="setPago(this,'💳 Crédito')">💳 Tarjeta Crédito</button>
       <button class="bpago" onclick="setPago(this,'📱 QR')" style="grid-column:1/-1">📱 Pago QR</button>
     </div>
-    <button class="bwa" onclick="enviarPedido()">💬 Pedir por WhatsApp</button>
+    <button class="bpos" id="btn-enviar" onclick="enviarPedido()">✅ Enviar pedido al local</button>
+    <button class="bwa" onclick="enviarPorWhatsApp()">💬 Prefiero pedir por WhatsApp</button>
   </div>
 </div>
 
@@ -666,7 +672,193 @@ function haversine(la1,lo1,la2,lo2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-function enviarPedido(){
+/* ═══════════ ENVÍO AUTOMÁTICO AL POS ═══════════
+   El pedido viaja a pedido_web.php (hosting) y aparece solo en el POS.
+   Si no hay internet o el hosting no responde, se abre WhatsApp como respaldo. */
+// El pedido viaja por el túnel de Cloudflare hasta la PC de la pizzería.
+// Se prueban las dos rutas posibles y se recuerda la que funcionó.
+const POS_URLS = [
+  "https://sync.pizzeriapapaoso.com.py/pizzeria/pedido_web.php",
+  "https://sync.pizzeriapapaoso.com.py/pedido_web.php"
+];
+function posUrlsOrdenadas(){
+  let guardada=null;
+  try{ guardada=localStorage.getItem("papaoso_pos_url"); }catch(e){}
+  if(guardada&&POS_URLS.indexOf(guardada)>=0){
+    return [guardada].concat(POS_URLS.filter(u=>u!==guardada));
+  }
+  return POS_URLS.slice();
+}
+
+// Junta todos los datos del formulario en un solo lugar
+function armarPedido(){
+  if(!tipoSel){toast("⚠️ Seleccioná Delivery o Retiro");return null;}
+  const nom=document.getElementById("c-nom").value.trim();
+  const tel=document.getElementById("c-tel").value.trim();
+  if(!nom||!tel||!pagoSel){toast("⚠️ Completá nombre, teléfono y forma de pago");return null;}
+  if(!carrito.length){toast("⚠️ Tu carrito está vacío");return null;}
+  const dir=document.getElementById("c-dir").value.trim();
+  if(tipoSel==="delivery"&&!dir){toast("⚠️ Para delivery necesitamos tu dirección");return null;}
+  const ruc=document.getElementById("c-ruc").value.trim();
+  const zona=(tipoSel==="delivery"&&gpsCosto)?(zonas.find(z=>z.costo===gpsCosto)||{}).label||"":"";
+  return {
+    nom:nom, tel:tel, dir:dir, ruc:ruc, zona:zona,
+    items: carrito.map(x=>{
+      const n=document.getElementById("nota-"+x.id);
+      return {
+        name : x.nombre,
+        qty  : x.qty,
+        price: x.precio,
+        cat  : x.categoria||"",
+        obs  : n?n.value.trim():""
+      };
+    })
+  };
+}
+
+// Arma el texto de WhatsApp (se usa para el botón verde y para el respaldo)
+function textoWhatsApp(d,ref){
+  const lineas=d.items.map(i=>`• ${i.qty}x ${i.name} — ${gs(i.price*i.qty)}${i.obs?" ("+i.obs+")":""}`).join("\n");
+  const entrega=tipoSel==="delivery"?"🛵 DELIVERY":"🏪 RETIRO EN LOCAL";
+  let msg=`🐻 *Pedido - Pizzería Papa Oso*\n${entrega}\n`;
+  if(ref) msg+=`🧾 Pedido Nº *${ref}*\n`;
+  msg+=`\n${lineas}\n\n🛒 Subtotal: ${gs(subtotal())}`;
+  if(tipoSel==="delivery"&&gpsCosto) msg+=`\n🛵 Delivery: ${gs(gpsCosto)}`;
+  msg+=`\n*💰 TOTAL: ${gs(totalFinal())}*\n\n📋 *Datos:*\n👤 ${d.nom}\n📞 ${d.tel}`;
+  if(d.dir) msg+=`\n📍 ${d.dir}`;
+  if(d.ruc) msg+=`\n🪪 RUC/CI: ${d.ruc}`;
+  if(clienteCoords) msg+=`\n🗺️ Ubicación: https://maps.google.com/?q=${clienteCoords.lat},${clienteCoords.lng}`;
+  msg+=`\n💳 Pago: ${pagoSel}`;
+  return msg;
+}
+
+function notificarEmail(d,ref){
+  try{
+    emailjs.init("c_KWTbc8JXckNKEHJ");
+    emailjs.send("service_nsoewpl","template_a56irlg",{
+      cliente_nombre:   d.nom,
+      cliente_telefono: d.tel,
+      cliente_direccion:d.dir || "No especificada",
+      cliente_ruc:      d.ruc || "No especificado",
+      tipo_entrega:     tipoSel==="delivery"?"🛵 DELIVERY":"🏪 RETIRO EN LOCAL",
+      metodo_pago:      pagoSel,
+      detalle_pedido:   d.items.map(i=>`• ${i.qty}x ${i.name} — ${gs(i.price*i.qty)}${i.obs?" ("+i.obs+")":""}`).join("\n")+(ref?`\n\nPedido Nº ${ref}`:""),
+      subtotal:         gs(subtotal()),
+      costo_delivery:   (tipoSel==="delivery"&&gpsCosto) ? gs(gpsCosto) : "Gs. 0",
+      total:            gs(totalFinal()),
+      coordenadas:      clienteCoords ? `https://maps.google.com/?q=${clienteCoords.lat},${clienteCoords.lng}` : "No disponible",
+      fecha_hora:       new Date().toLocaleString("es-PY",{timeZone:"America/Asuncion"})
+    }).catch(e=>console.warn("EmailJS error:",e));
+  }catch(e){ console.warn("EmailJS no cargó:",e); }
+}
+
+function limpiarTodo(){
+  carrito=[];tipoSel="";pagoSel="";gpsCosto=null;clienteCoords=null;
+  ["c-nom","c-dir","c-tel","c-ruc"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  document.querySelectorAll(".bpago").forEach(b=>b.classList.remove("sel"));
+  document.getElementById("bt-del").classList.remove("sel");
+  document.getElementById("bt-pick").classList.remove("sel");
+  document.getElementById("pickup-info").style.display="none";
+  document.getElementById("gps-section").style.display="none";
+  document.getElementById("gpsMsg").innerHTML="";
+  actualizarBadge();
+}
+
+// Botón verde: como siempre, abre WhatsApp
+function enviarPorWhatsApp(){
+  const d=armarPedido();
+  if(!d)return;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(textoWhatsApp(d,null))}`,"_blank");
+  notificarEmail(d,null);
+  setTimeout(()=>{limpiarTodo();cerrarCarrito();toast("✅ ¡Pedido enviado por WhatsApp!");},1200);
+}
+
+// Comprobante en pantalla completa con el número de pedido
+function mostrarComprobante(ref,total){
+  const vieja=document.getElementById("pos-ok-ovl");
+  if(vieja)vieja.remove();
+  const ovl=document.createElement("div");
+  ovl.id="pos-ok-ovl";
+  ovl.innerHTML=`<div class="okbox">
+    <div style="font-size:3rem;line-height:1">🎉</div>
+    <div class="oktxt" style="font-size:1.05rem">¡Pedido recibido!</div>
+    <div class="okref">${ref}</div>
+    <div class="oktxt">Total: ${gs(total)}</div>
+    <div style="font-size:.8rem;color:#2b6b3d;margin-top:.6rem;line-height:1.45">
+      Ya lo está viendo la pizzería.<br/>Guardá este número por las dudas.<br/>
+      Si en 10 minutos no te confirmamos, escribinos al WhatsApp.
+    </div>
+    <button class="bpos" style="margin-top:.9rem" onclick="document.getElementById('pos-ok-ovl').remove()">Listo 👍</button>
+    <a class="bwa" style="display:block;text-decoration:none;text-align:center;box-sizing:border-box"
+       href="https://wa.me/${WA}?text=${encodeURIComponent('Hola! Consulto por mi pedido '+ref+' 🐻')}" target="_blank">💬 Consultar por WhatsApp</a>
+  </div>`;
+  document.body.appendChild(ovl);
+  setTimeout(()=>{const e=document.getElementById("pos-ok-ovl");if(e)e.remove();},25000);
+}
+
+// Botón principal: va derecho al POS
+async function enviarPedido(){
+  const d=armarPedido();
+  if(!d)return;
+  const btn=document.getElementById("btn-enviar");
+  btn.disabled=true;btn.textContent="⏳ Enviando...";
+  try{
+    const cuerpo=JSON.stringify({
+      tipo:      tipoSel==="delivery"?"delivery":"retiro",
+      cliente:   d.nom,
+      tel:       d.tel,
+      direccion: d.dir,
+      referencia:d.ruc?("RUC/CI: "+d.ruc):"",
+      ubicacion: clienteCoords?`${clienteCoords.lat},${clienteCoords.lng}`:"",
+      zona:      d.zona,
+      pago:      pagoSel,
+      envio:     (tipoSel==="delivery"&&gpsCosto)?gpsCosto:0,
+      total:     totalFinal(),
+      items:     d.items
+    });
+    let res=null, ultimoError=null;
+    for(const url of posUrlsOrdenadas()){
+      try{
+        const ctrl=new AbortController();
+        const corte=setTimeout(()=>ctrl.abort(),12000);
+        const r=await fetch(url+"?accion=nuevo",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          signal:ctrl.signal,
+          body:cuerpo
+        });
+        clearTimeout(corte);
+        const j=await r.json();
+        if(j&&j.ok){
+          res=j;
+          try{ localStorage.setItem("papaoso_pos_url",url); }catch(e){}
+          break;
+        }
+        // el servidor contestó pero rechazó el pedido (falta un dato): no probar la otra ruta
+        if(j&&j.error){ ultimoError=new Error(j.error); break; }
+      }catch(e){ ultimoError=e; }
+    }
+    if(!res) throw (ultimoError||new Error("No respondió el local"));
+
+    // ✅ salió bien
+    mostrarComprobante(res.ref,res.total);
+    notificarEmail(d,res.ref);
+    limpiarTodo();
+    renderCarrito();
+    cerrarCarrito();
+  }catch(e){
+    // ❌ sin internet o el hosting no responde → respaldo por WhatsApp
+    console.warn("Pedido web falló:",e);
+    toast("⚠️ No pudimos enviarlo al local. Te pasamos a WhatsApp...");
+    window.open(`https://wa.me/${WA}?text=${encodeURIComponent(textoWhatsApp(d,null))}`,"_blank");
+    notificarEmail(d,null);
+    setTimeout(()=>{limpiarTodo();cerrarCarrito();},1500);
+  }finally{
+    btn.disabled=false;btn.textContent="✅ Enviar pedido al local";
+  }
+}
+
+function enviarPedidoViejo(){
   if(!tipoSel){toast("⚠️ Seleccioná Delivery o Retiro");return;}
   const nom=document.getElementById("c-nom").value.trim();
   const tel=document.getElementById("c-tel").value.trim();
