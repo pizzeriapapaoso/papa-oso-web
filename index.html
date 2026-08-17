@@ -112,6 +112,23 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--m);padding:
 .bpago.sel{background:var(--r);border-color:var(--r);color:white}
 .bpos{width:100%;background:var(--r);color:#fff;border:none;padding:1rem;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;margin-top:.6rem;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .bpos:disabled{opacity:.6;cursor:wait}
+#seg-ovl{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99998;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.segbox{background:#fffdf6;border-radius:16px;max-width:400px;width:100%;padding:1.2rem;margin:auto;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.segtop{text-align:center;border-bottom:2px dashed #f0e4c0;padding-bottom:.8rem;margin-bottom:.9rem}
+.segref{font-size:1.5rem;font-weight:900;color:var(--r);letter-spacing:1px}
+.segtit{font-size:1.15rem;font-weight:800;color:#2b6b3d;margin-top:.5rem}
+.segdet{font-size:.85rem;color:#6b6257;margin-top:.25rem;line-height:1.45}
+.segpaso{display:flex;align-items:flex-start;gap:.7rem;padding:.5rem 0}
+.segbolita{width:26px;height:26px;min-width:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:900;background:#eee5d0;color:#b9ab90}
+.segpaso.hecho .segbolita{background:#34a853;color:#fff}
+.segpaso.actual .segbolita{background:var(--r);color:#fff;box-shadow:0 0 0 5px rgba(216,90,48,.18)}
+.segnom{font-size:.9rem;font-weight:700;color:#b9ab90;align-self:center}
+.segpaso.hecho .segnom{color:#4a4a4a}
+.segpaso.actual .segnom{color:var(--r);font-weight:900}
+.seglinea{width:2px;height:14px;background:#eee5d0;margin-left:12px}
+.segpaso.hecho + .seglinea{background:#34a853}
+.segresumen{background:#fff;border:1px solid #f0e4c0;border-radius:10px;padding:.7rem;margin-top:.9rem;font-size:.82rem}
+.segfila{display:flex;justify-content:space-between;padding:.15rem 0}
 #pos-ok-ovl{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.2rem}
 #pos-ok-ovl .okbox{max-width:340px;width:100%;margin:0}
 .okbox{background:#e8f6ec;border:2px solid #34a853;border-radius:14px;padding:1.3rem;margin-top:.7rem;text-align:center}
@@ -773,8 +790,118 @@ function enviarPorWhatsApp(){
   setTimeout(()=>{limpiarTodo();cerrarCarrito();toast("✅ ¡Pedido enviado por WhatsApp!");},1200);
 }
 
+/* ═══════════ SEGUIMIENTO DEL PEDIDO ═══════════
+   Se abre con el botón del comprobante o entrando a
+   pizzeriapapaoso.com.py/?pedido=W-0012-abc123 */
+const SEG_PASOS=[
+  'Pedido recibido',
+  'Confirmado',
+  'En preparación',
+  'Listo',
+  'En camino',
+  'Entregado'
+];
+let _segRef=null,_segCod=null,_segTimer=null;
+
+function abrirSeguimiento(ref,cod){
+  _segRef=ref;_segCod=cod||'';
+  let ovl=document.getElementById("seg-ovl");
+  if(!ovl){
+    ovl=document.createElement("div");
+    ovl.id="seg-ovl";
+    document.body.appendChild(ovl);
+  }
+  ovl.innerHTML='<div class="segbox"><div style="text-align:center;padding:2rem 0;color:#6b6257">⏳ Buscando tu pedido...</div></div>';
+  consultarSeguimiento();
+  if(_segTimer)clearInterval(_segTimer);
+  _segTimer=setInterval(consultarSeguimiento,20000);   // se actualiza solo
+}
+
+function cerrarSeguimiento(){
+  const o=document.getElementById("seg-ovl");
+  if(o)o.remove();
+  if(_segTimer){clearInterval(_segTimer);_segTimer=null;}
+  // limpiar el ?pedido= de la barra de direcciones
+  try{ history.replaceState(null,"",location.pathname); }catch(e){}
+}
+
+async function consultarSeguimiento(){
+  if(!_segRef)return;
+  let d=null;
+  for(const url of posUrlsOrdenadas()){
+    try{
+      const r=await fetch(url+"?accion=consultar&ref="+encodeURIComponent(_segRef)+"&c="+encodeURIComponent(_segCod)+"&t="+Date.now());
+      const j=await r.json();
+      if(j&&j.ok){ d=j; try{localStorage.setItem("papaoso_pos_url",url);}catch(e){} break; }
+      if(j&&j.error){ d={error:j.error}; break; }
+    }catch(e){}
+  }
+  pintarSeguimiento(d);
+}
+
+function pintarSeguimiento(d){
+  const ovl=document.getElementById("seg-ovl");
+  if(!ovl)return;
+  if(!d||d.error){
+    ovl.innerHTML='<div class="segbox"><div class="segtop"><div class="segref">'+(_segRef||'')+'</div></div>'+
+      '<div style="text-align:center;color:#6b6257;font-size:.9rem;padding:.5rem 0 1rem">'+
+      (d&&d.error?d.error:'No pudimos conectarnos. Probá de nuevo en un ratito.')+'</div>'+
+      '<a class="bwa" style="display:block;text-decoration:none;text-align:center;box-sizing:border-box" href="https://wa.me/'+WA+'" target="_blank">💬 Escribinos por WhatsApp</a>'+
+      '<button class="bpos" style="margin-top:.5rem" onclick="cerrarSeguimiento()">Cerrar</button></div>';
+    return;
+  }
+  const rechazado=(d.paso===-1);
+  let pasosHtml='';
+  if(!rechazado){
+    for(let i=0;i<SEG_PASOS.length;i++){
+      const n=i+1;
+      const cls=n<d.paso?'hecho':(n===d.paso?'actual':'');
+      const ico=n<d.paso?'✓':(n===d.paso?'●':n);
+      let nombre=SEG_PASOS[i];
+      if(d.tipo!=='delivery'){
+        if(n===5)nombre='Esperándote en el local';
+        if(n===6)nombre='Retirado';
+      }
+      pasosHtml+='<div class="segpaso '+cls+'"><div class="segbolita">'+ico+'</div><div class="segnom">'+nombre+'</div></div>';
+      if(i<SEG_PASOS.length-1)pasosHtml+='<div class="seglinea"></div>';
+    }
+  }
+  const items=(d.items||[]).map(function(i){
+    return '<div class="segfila"><span>'+i.qty+'x '+i.name+'</span><span>'+gs(i.price*i.qty)+'</span></div>';
+  }).join('');
+  ovl.innerHTML='<div class="segbox">'+
+    '<div class="segtop">'+
+      '<div style="font-size:.75rem;color:#b9ab90;font-weight:700;letter-spacing:1px">TU PEDIDO</div>'+
+      '<div class="segref">'+d.ref+'</div>'+
+      '<div class="segtit">'+(rechazado?'😔 ':'')+d.titulo+'</div>'+
+      '<div class="segdet">'+d.detalle+'</div>'+
+    '</div>'+
+    pasosHtml+
+    '<div class="segresumen">'+items+
+      (d.envio>0?'<div class="segfila" style="color:#8a8172"><span>Envío</span><span>'+gs(d.envio)+'</span></div>':'')+
+      '<div class="segfila" style="border-top:1px solid #f0e4c0;margin-top:.3rem;padding-top:.4rem;font-weight:900;color:var(--r)"><span>Total</span><span>'+gs(d.total)+'</span></div>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:.7rem;color:#b9ab90;margin-top:.6rem">Se actualiza solo cada 20 segundos</div>'+
+    '<a class="bwa" style="display:block;text-decoration:none;text-align:center;box-sizing:border-box;margin-top:.6rem" href="https://wa.me/'+WA+'?text='+encodeURIComponent('Hola! Consulto por mi pedido '+d.ref+' 🐻')+'" target="_blank">💬 Consultar por WhatsApp</a>'+
+    '<button class="bpos" style="margin-top:.5rem" onclick="cerrarSeguimiento()">Cerrar</button>'+
+    '</div>';
+}
+
+// Si entra con el link de seguimiento, abrirlo directo
+function verSeguimientoDesdeURL(){
+  const m=location.search.match(/[?&]pedido=([^&]+)/i);
+  if(!m)return;
+  const val=decodeURIComponent(m[1]);
+  const partes=val.split('-');            // W-0012-abc123
+  if(partes.length<3)return;
+  const ref=partes[0]+'-'+partes[1];
+  const cod=partes.slice(2).join('-');
+  setTimeout(function(){ abrirSeguimiento(ref,cod); },600);
+}
+window.addEventListener('load',verSeguimientoDesdeURL);
+
 // Comprobante en pantalla completa con el número de pedido
-function mostrarComprobante(ref,total){
+function mostrarComprobante(ref,total,cod){
   const vieja=document.getElementById("pos-ok-ovl");
   if(vieja)vieja.remove();
   const ovl=document.createElement("div");
@@ -788,7 +915,7 @@ function mostrarComprobante(ref,total){
       Ya lo está viendo la pizzería.<br/>Guardá este número por las dudas.<br/>
       Si en 10 minutos no te confirmamos, escribinos al WhatsApp.
     </div>
-    <button class="bpos" style="margin-top:.9rem" onclick="document.getElementById('pos-ok-ovl').remove()">Listo 👍</button>
+    <button class="bpos" style="margin-top:.9rem" onclick="document.getElementById('pos-ok-ovl').remove();abrirSeguimiento('${ref}','${cod||''}')">📍 Seguir mi pedido</button>
     <a class="bwa" style="display:block;text-decoration:none;text-align:center;box-sizing:border-box"
        href="https://wa.me/${WA}?text=${encodeURIComponent('Hola! Consulto por mi pedido '+ref+' 🐻')}" target="_blank">💬 Consultar por WhatsApp</a>
   </div>`;
@@ -841,7 +968,8 @@ async function enviarPedido(){
     if(!res) throw (ultimoError||new Error("No respondió el local"));
 
     // ✅ salió bien
-    mostrarComprobante(res.ref,res.total);
+    mostrarComprobante(res.ref,res.total,res.codigo);
+    try{ if(res.link)localStorage.setItem("papaoso_ultimo_pedido",res.ref+"-"+(res.codigo||"")); }catch(e){}
     notificarEmail(d,res.ref);
     limpiarTodo();
     renderCarrito();
